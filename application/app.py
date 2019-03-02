@@ -8,7 +8,7 @@ from pages.namepage import NamePage
 class Application(tk.Tk):
     """Application class inheriting from tk.Tk."""
 
-    HOST, PORT = "167.99.194.4", 9000
+    HOST, PORT = "ip.ip.ip.ip", 9000
 
     def __init__(self):
         """Initialise the Application class."""
