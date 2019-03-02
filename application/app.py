@@ -8,7 +8,8 @@ from pages.namepage import NamePage
 class Application(tk.Tk):
     """Application class inheriting from tk.Tk."""
 
-    HOST, PORT = "ip.ip.ip.ip", 9000
+    HOST, PORT = "167.99.194.4", 9000
+    USERNAME = None
 
     def __init__(self):
         """Initialise the Application class."""
@@ -29,11 +30,6 @@ class Application(tk.Tk):
             return True
         return False
 
-    def setUsername(self, username):
-        """Set username from namepage.py."""
-        self.USERNAME = username
-        self.establishConnection()
-
     def create_pages(self):
         """Create the pages used inside the application."""
         self.pages = {}
@@ -41,7 +37,7 @@ class Application(tk.Tk):
         self.pages[ChatPage] = ChatPage(self)
         self.pages[NamePage] = NamePage(self)
 
-        self.change_page(ChatPage)
+        self.change_page(NamePage)
 
     def change_page(self, new_page):
         """

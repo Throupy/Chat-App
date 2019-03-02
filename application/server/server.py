@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import pickle
 
 
 class Server:
@@ -25,7 +26,8 @@ class Server:
     def clientThread(self, conn):
         """Thread for the client."""
         while True:
-            data = conn.recv(1024)
+            data = conn.recv(2048)
+            print("got ", data)
             if not data:
                 break
             for conn in self.CURRENTLY_CONNECTED_USERS:

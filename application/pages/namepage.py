@@ -1,6 +1,7 @@
 """Chat page for the chat application."""
 
 import tkinter as tk
+from pages.chatpage import ChatPage
 
 
 class NamePage(tk.Frame):
@@ -12,7 +13,7 @@ class NamePage(tk.Frame):
         super().__init__()
         self.grid(sticky=tk.N+tk.S+tk.E+tk.W)
         self.parent = parent
-        self.parent.geometry("300x100")
+        self.parent.geometry("300x500")
         self.create_widgets()
 
     def create_widgets(self):
@@ -29,4 +30,5 @@ class NamePage(tk.Frame):
 
     def proceed(self, username):
         """Contact the main application with the username."""
-        self.parent.establishConnection()
+        self.parent.USERNAME = username
+        self.parent.change_page(ChatPage)

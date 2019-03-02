@@ -3,6 +3,7 @@
 import tkinter as tk
 import threading
 import time
+import pickle
 
 
 class ChatPage(tk.Frame):
@@ -21,7 +22,8 @@ class ChatPage(tk.Frame):
         while True:
             message = self.parent.socket.recv(1024)
             if message != '':
-                print("got msg")
+                # De-serialize the data (dict)
+                message = pickle.loads(message)
                 self.handleMessage(message)
             time.sleep(0.05)
 
@@ -31,6 +33,10 @@ class ChatPage(tk.Frame):
         Arguments:
             message - the message to be handled
         """
+        OGMessage = message
+        message = f"{OGMessage['author']} said:"
+        self.msg_list.insert(tk.END, message)
+        message = f"{OGMessage['message']}"
         self.msg_list.insert(tk.END, message)
 
     def create_widgets(self):
@@ -56,16 +62,23 @@ class ChatPage(tk.Frame):
         self.messageEntry = tk.Entry(self, width=20)
         self.messageEntry.grid()
         self.sendBtn = tk.Button(self, text="Send", command=lambda:
-                                 self.sendMessage(self.messageEntry.get()))
+                                 self.sendMessage(self.messageEntry.get(),
+                                                  self.parent.USERNAME))
         self.sendBtn.grid()
         thread = threading.Thread(target=self.awaitMsg, args=())
         thread.daemon = True                            # Daemonize thread
         thread.start()
 
-    def sendMessage(self, message):
+    def sendMessage(self, message, author):
         """Send a message to other users.
 
         Arguments:
             message - the message to be sent
         """
-        self.parent.socket.sendall(message.encode("utf8"))
+        message = {
+            "author": author,
+            "message": message
+                   }
+        # Data needs to be seralized before I can send it over a socket
+        message = pickle.dumps(message)
+        self.parent.socket.sendall(message)
