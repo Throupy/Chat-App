@@ -1,52 +1,77 @@
-"""Server for the chat application."""
+"""Server class for chat app."""
 
 import socket
-import threading
-import pickle
+import select
 
 
 class Server:
-    """Server class."""
+    """Server object."""
 
-    CURRENTLY_CONNECTED_USERS = []
+    HOST = '167.99.194.4'
+    PORT = 9000
+    HEADERLENGTH = 10
 
-    def __init__(self):
-        """Initialise the class."""
-        self.HOST = '167.99.194.4'
-        self.PORT = 9000
-        self.setup()
+    serverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    serverSock.bind((HOST, PORT))
+    serverSock.listen()
+    sockets = [serverSock]
+    connectedUsers = {}
 
-    def setup(self):
-        """Set up the server."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((self.HOST, self.PORT))
-            s.listen(3)
-            self.awaitConn(s)
+    print('Listening for connections on {}:{}...'.format(HOST, PORT))
 
-    def clientThread(self, conn):
-        """Thread for the client."""
+    def getMsg(self, sock):
+        """Recieve a message."""
+        try:
+            msgHead = sock.recv(self.HEADERLENGTH)
+            if not len(msgHead):
+                return False
+            msgLen = int(msgHead.decode('utf-8').strip())
+            return {"header": msgHead, "data": sock.recv(msgLen)}
+        except Exception:
+            return False
+
+    def main(self):
+        """Activate main function."""
         while True:
-            data = conn.recv(2048)
-            print("got ", data)
-            if not data:
-                break
-            for conn in self.CURRENTLY_CONNECTED_USERS:
-                conn.sendall(data)
-
-    def awaitConn(self, s):
-        """Await connections."""
-        while True:
-            conn, addr = s.accept()
-            self.CURRENTLY_CONNECTED_USERS.append(conn)
-            print("Connection from", addr)
-            conn.sendall(b"200")
-            try:
-                threading.Thread(target=self.clientThread,
-                                 args=(conn,)).start()
-            except Exception:
-                print("[!]Thread could not start!")
-
-        s.close()
+            readSocks, x, exceptionSocks = select.select(self.sockets, [],
+                                                         self.sockets)
+            for notifiedSock in readSocks:
+                if notifiedSock == self.serverSock:
+                    clientSock, clientAddr = self.serverSock.accept()
+                    user = self.getMsg(clientSock)
+                    if user is False:
+                        continue
+                    self.sockets.append(clientSock)
+                    self.connectedUsers[clientSock] = user
+                    print("New connection from {}:{} username: {}".format(
+                        *clientAddr, user['data'].decode('utf-8')
+                    ))
+                # Sending a msg
+                else:
+                    msg = self.getMsg(notifiedSock)
+                    if msg is False:
+                        print('Closed connection from: {}'.format(
+                            self.connectedUsers[notifiedSock]['data']
+                                .decode('utf-8')
+                        ))
+                        self.sockets.remove(notifiedSock)
+                        del self.connectedUsers[notifiedSock]
+                        continue
+                    user = self.connectedUsers[notifiedSock]
+                    print("Got message from {}: {}".format(
+                        user["data"].decode('utf-8'), msg["data"]
+                        .decode("utf-8")
+                    ))
+                    # Send to all users
+                    for clientSocket in self.connectedUsers:
+                        if clientSocket != notifiedSock:
+                            clientSocket.send(user['header'] + user['data']
+                                              + msg['header'] + msg['data'])
+            for notifiedSock in exceptionSocks:
+                self.sockets.remove(notifiedSock)
+                del self.connectedUsers[notifiedSock]
 
 
 server = Server()
+server.main()

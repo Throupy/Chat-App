@@ -1,8 +1,51 @@
-"""Client for the chat application."""
+"""Client app for the chat app."""
 import socket
 import tkinter as tk
-from pages.chatpage import ChatPage
-from pages.namepage import NamePage
+
+
+class AskForUsername(tk.Frame):
+    """Asks for username."""
+
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.top = tk.Toplevel(parent)
+        userNameLabel = tk.Label(self.top, text="Enter your username")
+        userNameLabel.pack()
+        self.userNameEntry = tk.Entry(self.top)
+        self.userNameEntry.pack()
+        submit = tk.Button(self.top, text="Submit", command=lambda:
+            self.cleanup())
+        submit.pack()
+
+    def cleanup(self):
+        value = self.userNameEntry.get()
+        self.parent.USERNAME = value
+        self.top.destroy()
+        self.parent.change_page(MainWindow)
+
+
+class MainWindow(tk.Frame):
+    """Main window class."""
+
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.create_widgets()
+        if parent.USERNAME is None:
+            self.popup()
+
+    def create_widgets(self):
+        l = tk.Label(self, text="Main Window")
+        l.grid()
+
+    def popup(self):
+        self.window = AskForUsername(self.parent)
+        self.parent.wait_window(self.window.top)
+
+    def entryValue(self):
+        return self.window.value
+
 
 
 class Application(tk.Tk):
@@ -10,34 +53,22 @@ class Application(tk.Tk):
 
     HOST, PORT = "167.99.194.4", 9000
     USERNAME = None
+    # socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # socket.connect((HOST, PORT))
+    # socket.setblocking(False)
 
     def __init__(self):
         """Initialise the Application class."""
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.HOST, self.PORT))
         super().__init__()
-        if self.establishConnection():
-            self.create_pages()
-        else:
-            return
-
-    def establishConnection(self):
-        """Establish a connection with the chat server."""
-        response = self.socket.recv(1024)
-        # 200 = OK
-        if response.decode() == "200":
-            print("Connection established")
-            return True
-        return False
+        self.create_pages()
+        self.protocol("WM_DELETE_WINDOW", self.quit())
 
     def create_pages(self):
         """Create the pages used inside the application."""
         self.pages = {}
 
-        self.pages[ChatPage] = ChatPage(self)
-        self.pages[NamePage] = NamePage(self)
-
-        self.change_page(NamePage)
+        self.pages[MainWindow] = MainWindow(self)
+        self.change_page(MainWindow)
 
     def change_page(self, new_page):
         """
@@ -52,7 +83,6 @@ class Application(tk.Tk):
                 page.grid_forget()
         # Place our new page onto the screen
         self.pages[new_page].grid(row=0, column=0)
-
 
 if __name__ == "__main__":
     app = Application()
