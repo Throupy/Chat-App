@@ -1,51 +1,48 @@
 """Client app for the chat app."""
 import socket
 import tkinter as tk
-
-
-class AskForUsername(tk.Frame):
-    """Asks for username."""
-
-    def __init__(self, parent):
-        super().__init__()
-        self.parent = parent
-        self.top = tk.Toplevel(parent)
-        userNameLabel = tk.Label(self.top, text="Enter your username")
-        userNameLabel.pack()
-        self.userNameEntry = tk.Entry(self.top)
-        self.userNameEntry.pack()
-        submit = tk.Button(self.top, text="Submit", command=lambda:
-            self.cleanup())
-        submit.pack()
-
-    def cleanup(self):
-        value = self.userNameEntry.get()
-        self.parent.USERNAME = value
-        self.top.destroy()
-        self.parent.change_page(MainWindow)
+from tkinter.simpledialog import askstring
 
 
 class MainWindow(tk.Frame):
     """Main window class."""
 
     def __init__(self, parent):
+        """Initialize class."""
         super().__init__()
         self.parent = parent
-        self.create_widgets()
         if parent.USERNAME is None:
             self.popup()
+        else:
+            self.create_widgets()
 
     def create_widgets(self):
-        l = tk.Label(self, text="Main Window")
-        l.grid()
+        """Create widgets."""
+        self.parent.geometry("400x600")
+        msgFrame = tk.Frame(self)
+        myMsg = tk.StringVar()
+        myMsg.set("Type your messages here")
+        scrollbar = tk.Scrollbar(msgFrame)
+        msg_list = tk.Listbox(msgFrame,
+                              height=15,
+                              width=60,
+                              yscrollcommand=scrollbar.set)
+        scrollbar.grid(sticky=tk.E)
+        msg_list.grid(sticky=tk.W)
+        msg_list.grid()
+        msgFrame.grid()
+
+        entry_field = tk.Entry(self, textvariable=myMsg, width=50)
+        entry_field.bind("<Return>", self.quit())
+        entry_field.grid()
+        send_button = tk.Button(self, text="Send")
+        send_button.grid()
 
     def popup(self):
-        self.window = AskForUsername(self.parent)
-        self.parent.wait_window(self.window.top)
-
-    def entryValue(self):
-        return self.window.value
-
+        """Popup and ask for the user's name."""
+        name = askstring('Name', 'What is your name?')
+        self.parent.USERNAME = name
+        self.create_widgets()
 
 
 class Application(tk.Tk):
@@ -53,9 +50,9 @@ class Application(tk.Tk):
 
     HOST, PORT = "167.99.194.4", 9000
     USERNAME = None
-    # socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # socket.connect((HOST, PORT))
-    # socket.setblocking(False)
+    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket.connect((HOST, PORT))
+    socket.setblocking(False)
 
     def __init__(self):
         """Initialise the Application class."""
@@ -83,6 +80,7 @@ class Application(tk.Tk):
                 page.grid_forget()
         # Place our new page onto the screen
         self.pages[new_page].grid(row=0, column=0)
+
 
 if __name__ == "__main__":
     app = Application()
