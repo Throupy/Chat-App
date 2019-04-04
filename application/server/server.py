@@ -7,13 +7,14 @@ import select
 class Server:
     """Server object."""
 
-    HOST = '167.99.194.4'
+    HOST = '127.0.0.1'
     PORT = 9000
     HEADERLENGTH = 10
 
     serverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     serverSock.bind((HOST, PORT))
+    serverSock.settimeout(3)
     serverSock.listen()
     sockets = [serverSock]
     connectedUsers = {}
@@ -65,7 +66,9 @@ class Server:
                     ))
                     # Send to all users
                     for clientSocket in self.connectedUsers:
+                        print(clientSocket)
                         if clientSocket != notifiedSock:
+                            print("Sending to {}".format(user["data"].decode('utf-8')))
                             clientSocket.send(user['header'] + user['data']
                                               + msg['header'] + msg['data'])
             for notifiedSock in exceptionSocks:
