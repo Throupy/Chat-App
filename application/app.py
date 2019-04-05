@@ -1,6 +1,6 @@
 """Client app for the chat app."""
 import socket
-import sys
+import sys, time, threading
 import errno
 import tkinter as tk
 from tkinter.simpledialog import askstring
@@ -20,6 +20,7 @@ class MainWindow(tk.Frame):
         """Initialize class."""
         super().__init__()
         self.parent = parent
+        threading.Thread(target=self.waitForMessage).start()
         if self.USERNAME is None:
             self.popup()
         else:
@@ -50,17 +51,11 @@ class MainWindow(tk.Frame):
                                     self.sendMessage(entry_field.get()))
         send_button.grid()
 
-    def sendMessage(self, message):
-        """Handle the event in which the user wants to send a message."""
-        self.msg_list.insert(tk.END, f"{self.USERNAME} > {message}")
+    def waitForMessage(self):
+        """Wait for messages."""
         cs = self.clientsocket
-        message = message.encode('utf-8')
-        message_header = f"{len(message):<{self.HEADERLENGTH}}".encode('utf-8')
-        cs.send(message_header + message)
-        cs = self.clientsocket
-        print("Wait called")
-        try:
-            while True:
+        while True:
+            try:
                 usernameHeader = cs.recv(self.HEADERLENGTH)
                 if not len(usernameHeader):
                     print("Connection forceably closed by the remote host")
@@ -72,17 +67,26 @@ class MainWindow(tk.Frame):
                 message = cs.recv(message_length).decode('utf-8')
                 self.msg_list.insert(tk.END, f"{username} > {message}")
 
-        except IOError as e:
-            print(str(e))
-            if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
-                print('Reading error: {}'.format(str(e)))
-                sys.exit()
-            pass
+            except IOError as e:
+                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                    print('Reading error: {}'.format(str(e)))
+                    sys.exit()
+                pass
 
-        except Exception as e:
-            print(str(e))
-            print('Reading error: '.format(str(e)))
-            sys.exit()
+            except Exception as e:
+                print('Reading error: '.format(str(e)))
+                sys.exit()
+
+        time.sleep(0.1)
+
+    def sendMessage(self, message):
+        """Handle the event in which the user wants to send a message."""
+        self.msg_list.insert(tk.END, f"{self.USERNAME} > {message}")
+        cs = self.clientsocket
+        message = message.encode('utf-8')
+        message_header = f"{len(message):<{self.HEADERLENGTH}}".encode('utf-8')
+        cs.send(message_header + message)
+        cs = self.clientsocket
 
     def popup(self):
         """Popup and ask for the user's name."""
