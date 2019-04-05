@@ -68,7 +68,8 @@ class Server:
                     for clientSocket in self.connectedUsers:
                         print(clientSocket)
                         if clientSocket != notifiedSock:
-                            print("Sending to {}".format(user["data"].decode('utf-8')))
+                            print("Sending to {}".format(
+                                                user["data"].decode('utf-8')))
                             clientSocket.send(user['header'] + user['data']
                                               + msg['header'] + msg['data'])
             for notifiedSock in exceptionSocks:
