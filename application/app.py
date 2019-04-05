@@ -9,11 +9,11 @@ from tkinter.simpledialog import askstring
 class MainWindow(tk.Frame):
     """Main window class."""
 
-    HOST, PORT = '127.0.0.1', 9000
+    HOST, PORT = '167.99.194.4', 9000
     USERNAME = None
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientsocket.connect((HOST, PORT))
-    clientsocket.setblocking(False)
+    clientsocket.setblocking(0)
     HEADERLENGTH = 10
 
     def __init__(self, parent):
@@ -52,11 +52,13 @@ class MainWindow(tk.Frame):
 
     def sendMessage(self, message):
         """Handle the event in which the user wants to send a message."""
-        self.msg_list.insert(tk.END, message)
+        self.msg_list.insert(tk.END, f"{self.USERNAME} > {message}")
         cs = self.clientsocket
         message = message.encode('utf-8')
         message_header = f"{len(message):<{self.HEADERLENGTH}}".encode('utf-8')
         cs.send(message_header + message)
+        cs = self.clientsocket
+        print("Wait called")
         try:
             while True:
                 usernameHeader = cs.recv(self.HEADERLENGTH)
@@ -71,13 +73,14 @@ class MainWindow(tk.Frame):
                 self.msg_list.insert(tk.END, f"{username} > {message}")
 
         except IOError as e:
+            print(str(e))
             if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
                 print('Reading error: {}'.format(str(e)))
                 sys.exit()
             pass
 
         except Exception as e:
-            print(e)
+            print(str(e))
             print('Reading error: '.format(str(e)))
             sys.exit()
 
