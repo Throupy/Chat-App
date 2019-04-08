@@ -4,11 +4,11 @@ import sys
 import time
 import threading
 import errno
-import tkinter as tk
+import tkinter
 from tkinter.simpledialog import askstring
 
 
-class MainWindow(tk.Frame):
+class MainWindow(tkinter.Frame):
     """Main window class."""
 
     HOST, PORT = '167.99.194.4', 9000
@@ -30,28 +30,26 @@ class MainWindow(tk.Frame):
 
     def create_widgets(self):
         """Create widgets."""
-        self.parent.geometry("400x600")
-        msgFrame = tk.Frame(self)
-        self.myMsg = tk.StringVar()
-        self.myMsg.set("Type your messages here")
-        scrollbar = tk.Scrollbar(msgFrame)
-        self.msg_list = tk.Listbox(msgFrame,
-                                   height=15,
-                                   width=60,
-                                   yscrollcommand=scrollbar.set)
-        scrollbar.grid(sticky=tk.E)
-        self.msg_list.grid(sticky=tk.W)
-        self.msg_list.grid()
-        msgFrame.grid()
+        self.parent.geometry("500x400")
+        messages_frame = tkinter.Frame(self)
+        self.my_msg = tkinter.StringVar()  # For the messages to be sent.
+        self.my_msg.set("Type your messages here.")
+        scrollbar = tkinter.Scrollbar(messages_frame)
+        self.msg_list = tkinter.Listbox(messages_frame, height=20,
+                                        width=80, yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.msg_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
+        self.msg_list.pack()
+        messages_frame.pack()
 
-        entry_field = tk.Entry(self, textvariable=self.myMsg, width=50)
-        entry_field.bind("<Return>", self.quit())
-        entry_field.grid()
-        send_button = tk.Button(self,
-                                text="Send",
-                                command=lambda:
-                                    self.sendMessage(entry_field.get()))
-        send_button.grid()
+        entry_field = tkinter.Entry(self,
+                                    textvariable=self.my_msg,
+                                    width=50)
+        entry_field.pack()
+        send_button = tkinter.Button(self, text="Send",
+                                     command=lambda:
+                                     self.sendMessage(entry_field.get()))
+        send_button.pack()
 
     def waitForMessage(self):
         """Wait for messages."""
@@ -67,7 +65,7 @@ class MainWindow(tk.Frame):
                 message_header = cs.recv(self.HEADERLENGTH)
                 message_length = int(message_header.decode('utf-8').strip())
                 message = cs.recv(message_length).decode('utf-8')
-                self.msg_list.insert(tk.END, f"{username} > {message}")
+                self.msg_list.insert(tkinter.END, f"{username} > {message}")
 
             except IOError as e:
                 if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
@@ -85,11 +83,11 @@ class MainWindow(tk.Frame):
         """Handle the event in which the user wants to send a message."""
         if len(message) < 1:
             return
-        self.msg_list.insert(tk.END, f"{self.USERNAME} > {message}")
+        self.msg_list.insert(tkinter.END, f"{self.USERNAME} > {message}")
         message = message.encode('utf-8')
         message_header = f"{len(message):<{self.HEADERLENGTH}}".encode('utf-8')
         self.clientsocket.send(message_header + message)
-        self.myMsg.set("")
+        self.my_msg.set("")
 
     def popup(self):
         """Popup and ask for the user's name."""
@@ -101,3 +99,5 @@ class MainWindow(tk.Frame):
         username_header = f"{len(name):<{self.HEADERLENGTH}}".encode('utf-8')
         self.clientsocket.send(username_header + name)
         self.create_widgets()
+        self.msg_list.insert(tkinter.END,
+                             f"New connection from {name.decode()}")

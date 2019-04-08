@@ -7,7 +7,7 @@ import select
 class Server:
     """Server object."""
 
-    HOST = '127.0.0.1'
+    HOST = '167.99.194.4'
     PORT = 9000
     HEADERLENGTH = 10
 
@@ -66,7 +66,6 @@ class Server:
                     ))
                     # Send to all users
                     for clientSocket in self.connectedUsers:
-                        print(clientSocket)
                         if clientSocket != notifiedSock:
                             print("Sending to {}".format(
                                                 user["data"].decode('utf-8')))
