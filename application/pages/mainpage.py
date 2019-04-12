@@ -1,6 +1,7 @@
 """Main page for chat app."""
 import socket
 import sys
+import json
 import time
 import threading
 import errno
@@ -22,7 +23,6 @@ class MainWindow(tkinter.Frame):
         """Initialize class."""
         super().__init__()
         self.parent = parent
-        threading.Thread(target=self.waitForMessage).start()
         if self.USERNAME is None:
             self.popup()
         else:
@@ -74,7 +74,7 @@ class MainWindow(tkinter.Frame):
                 pass
 
             except Exception as e:
-                print('Reading error: '.format(str(e)))
+                print('Reading error: {}'.format(str(e)))
                 sys.exit()
 
         time.sleep(0.1)
@@ -89,12 +89,42 @@ class MainWindow(tkinter.Frame):
         self.clientsocket.send(message_header + message)
         self.my_msg.set("")
 
+    def addOldMessages(self, msgs):
+        """Add old messages from getMsgs() method."""
+        msgs = json.loads(msgs.decode())
+        for msg in msgs:
+            print(msg)
+            self.msg_list.insert(tkinter.END,
+                                 f"{msg['author']} > {msg['content']}")
+        self.msg_list.insert(tkinter.END, "-----------------------")
+
+    def getMsgs(self, clientsocket):
+        """Get previously sent messages from database (server side DB) ."""
+        while True:
+            try:
+                msgs = clientsocket.recv(4092)
+                self.addOldMessages(msgs)
+                threading.Thread(target=self.waitForMessage).start()
+                break
+            except IOError as e:
+                if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+                    print('Reading error: {}'.format(str(e)))
+                    sys.exit()
+                pass
+
+            except Exception as e:
+                print('Reading error: {}'.format(e))
+                sys.exit()
+            time.sleep(0.3)
+
     def popup(self):
         """Popup and ask for the user's name."""
         name = askstring('Name', 'What is your name?')
         if len(name) < 1:
             name = "Anonymous"
         self.USERNAME = name
+        threading.Thread(target=self.getMsgs,
+                         args=(self.clientsocket,)).start()
         name = name.encode("utf-8")
         username_header = f"{len(name):<{self.HEADERLENGTH}}".encode('utf-8')
         self.clientsocket.send(username_header + name)

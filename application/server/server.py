@@ -1,7 +1,11 @@
 """Server class for chat app."""
 
+import json
 import socket
 import select
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from alch import Message, Base
 
 
 class Server:
@@ -10,7 +14,10 @@ class Server:
     HOST = '167.99.194.4'
     PORT = 9000
     HEADERLENGTH = 10
-
+    engine = create_engine("sqlite:///chat_app.db")
+    Base.metadata.bind = engine
+    DBSession = sessionmaker(bind=engine)
+    session = DBSession()
     serverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     serverSock.bind((HOST, PORT))
@@ -32,6 +39,17 @@ class Server:
         except Exception:
             return False
 
+    def getOldMsgs(self):
+        """Fetch and seralize messages from DB."""
+        messages = self.session.query(Message).order_by(Message.id.desc()).limit(8)
+        # Reverse list
+        messages = messages[::-1]
+        serializedMessages = []
+        for msg in messages:
+            serializedMessages.append(Message.row2dict(msg))
+        data = json.dumps(serializedMessages)
+        return data
+
     def main(self):
         """Activate main function."""
         while True:
@@ -48,6 +66,8 @@ class Server:
                     print("New connection from {}:{} username: {}".format(
                         *clientAddr, user['data'].decode('utf-8')
                     ))
+                    data = self.getOldMsgs()
+                    clientSock.send(data.encode())
                 # Sending a msg
                 else:
                     msg = self.getMsg(notifiedSock)
@@ -64,7 +84,11 @@ class Server:
                         user["data"].decode('utf-8'), msg["data"]
                         .decode("utf-8")
                     ))
-                    # Send to all users
+                    message = Message(content=msg["data"].decode("utf-8"),
+                                      author=user["data"].decode("utf-8"))
+                    self.session.add(message)
+                    self.session.commit()
+                    print("Added message into database")
                     for clientSocket in self.connectedUsers:
                         if clientSocket != notifiedSock:
                             print("Sending to {}".format(
